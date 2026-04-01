@@ -1,33 +1,30 @@
-import org.junit.Before;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 
 import java.io.*;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOutput
 {
-    public static final int BUFFER_LENGTH = 4096;
-    private static ByteArrayInputStream in;
-    private static InputStream originalIn;
-    private static byte[] inputBuffer = new byte[BUFFER_LENGTH];
+    private InputStream originalIn;
+    private PrintStream originalOut;
 
-    @BeforeAll
-    private static void init() {
-        in = new ByteArrayInputStream(inputBuffer);
+    @BeforeEach
+    public void init() {
         originalIn = System.in;
-        System.setIn(in);
+        originalOut = System.out;
     }
 
-    @AfterAll
-    private static void cleanUp() {
+    @AfterEach
+    public void cleanUp() {
         System.setIn(originalIn);
+        System.setOut(originalOut);
     }
 
     @ParameterizedTest(name="{0}")
@@ -35,21 +32,16 @@ public class TestOutput
     public void testOutputMatch(String testCaseName, String input, String expectedOutput, String matchType)
     {
         // Capture stdout
-        PrintStream originalOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outputStream));
 
         // Send input
-        byte[] inputBytes = input.getBytes();
-        TestOutput.in.reset();
-        int destinationPos = BUFFER_LENGTH - inputBytes.length;
-        System.arraycopy(inputBytes, 0, TestOutput.inputBuffer, destinationPos, inputBytes.length);
-        TestOutput.in.skip(destinationPos);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(input.getBytes());
+        System.setIn(inputStream);
 
         // Run the class and capture stdout
-        Main.main(null);
+        Main.main(new String[]{});
         String actualOutput = outputStream.toString().trim();
-        System.setOut(originalOut);
 
         // Perform the corresponding assertion based on the match type
         switch (matchType) {
@@ -67,21 +59,6 @@ public class TestOutput
             default:
                 fail("Invalid match type for " + testCaseName);
         }
-//            } catch (ClassNotFoundException e)
-//            {
-//                throw new RuntimeException(e);
-//            } catch (InvocationTargetException e)
-//            {
-//                throw new RuntimeException(e);
-//            } catch (IllegalAccessException e)
-//            {
-//                throw new RuntimeException(e);
-//            } catch (NoSuchMethodException e)
-//            {
-//                throw new RuntimeException(e);
-//            } finally {
-//                System.setIn(originalIn);
-//            }
     }
 }
 
